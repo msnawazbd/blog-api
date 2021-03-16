@@ -45,8 +45,7 @@ class PostController extends Controller
             'details' => 'nullable',
             'status' => 'required',
         ]);
-
-        $post = Post::create([
+        $create_post = Post::create([
             'created_by' => Auth::user()->id,
             'category_id' => $request->input('category_id'),
             'title' => $request->input('title'),
@@ -54,7 +53,29 @@ class PostController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        if (!empty($post->id)) {
+        if ($request->input('base64_encoded_file')) {
+            // convert to array after and before base64,
+            $base64_encode_data = explode('base64,', $request->input('base64_encoded_file'));
+            // get last index which is base64_encode value
+            $base64_decode_data = base64_decode($base64_encode_data[1]);
+            // get file original extension
+            $file_original_name = explode('.', $request->input('file_original_name'));
+            $file_original_extension = end($file_original_name);
+            // create unique file name
+            $file_unique_name = time() . '.' . $file_original_extension;
+            // create upload path
+            $upload_path = public_path() . $request->input('file_upload_path') . $file_unique_name;
+            // returns the number of bytes that were written to the file, or false on failure.
+            $success = file_put_contents($upload_path, $base64_decode_data);
+
+            if($success){
+                $post = Post::findOrFail($create_post->id);
+                $post->photo = $file_unique_name;
+                $post->save();
+            }
+        }
+
+        if (!empty($create_post->id)) {
             return response()->json([
                 'response_code' => 201,
                 'message' => 'Success',
@@ -151,7 +172,7 @@ class PostController extends Controller
             ]);
         }
 
-        if($post->delete()){
+        if ($post->delete()) {
             return response()->json([
                 'response_code' => 204,
                 'message' => 'No Content'

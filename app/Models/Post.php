@@ -13,6 +13,7 @@ class Post extends Model
         'created_by',
         'title',
         'details',
+        'photo',
         'status',
     ];
 
